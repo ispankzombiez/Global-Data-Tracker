@@ -46,11 +46,13 @@ function applyTheme(theme) {
   } catch {
     // Ignore localStorage failures in restricted browser contexts.
   }
-  themeToggle.textContent = state.theme === "dark" ? "Light Mode" : "Dark Mode";
-  themeToggle.setAttribute(
-    "aria-label",
-    state.theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-  );
+  if (themeToggle) {
+    themeToggle.textContent = state.theme === "dark" ? "Light Mode" : "Dark Mode";
+    themeToggle.setAttribute(
+      "aria-label",
+      state.theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+    );
+  }
 
   if (state.datasets[state.source]) {
     renderCurrent();
@@ -611,8 +613,6 @@ function renderCurrent() {
 
 async function init() {
   try {
-    applyTheme(state.theme);
-
     let availableSources = ["active"];
 
     try {
@@ -679,13 +679,18 @@ async function init() {
       downloadFilteredItemsCsv();
     });
 
-    themeToggle.addEventListener("click", () => {
-      applyTheme(state.theme === "dark" ? "light" : "dark");
-    });
   } catch (error) {
     renderError(error);
     console.error(error);
   }
+}
+
+applyTheme(state.theme);
+
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    applyTheme(state.theme === "dark" ? "light" : "dark");
+  });
 }
 
 init();
