@@ -104,6 +104,53 @@ async function loadJson(url) {
   return response.json();
 }
 
+let processedDataBase = null;
+
+function processedDataBaseCandidates() {
+  const candidates = [];
+  const add = (value) => {
+    const normalized = String(value || "").replace(/\/+$/, "");
+    if (normalized && !candidates.includes(normalized)) {
+      candidates.push(normalized);
+    }
+  };
+
+  // Relative candidates support local docs serving and repo-root entrypoint modes.
+  add("./data/processed");
+  add("../data/processed");
+
+  // Absolute candidate supports GitHub project pages where app is hosted under /<repo>/.
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  if (window.location.hostname.endsWith("github.io") && pathParts.length > 0) {
+    add(`/${pathParts[0]}/data/processed`);
+  }
+
+  // Final fallback for custom-domain/root-hosted pages.
+  add("/data/processed");
+
+  return candidates;
+}
+
+async function loadProcessedJson(fileName) {
+  if (processedDataBase) {
+    return loadJson(`${processedDataBase}/${fileName}`);
+  }
+
+  const attempts = [];
+  for (const base of processedDataBaseCandidates()) {
+    const url = `${base}/${fileName}`;
+    try {
+      const payload = await loadJson(url);
+      processedDataBase = base;
+      return payload;
+    } catch (error) {
+      attempts.push(url);
+    }
+  }
+
+  throw new Error(`No processed datasets available. Tried: ${attempts.join(", ")}`);
+}
+
 function categoryForItem(itemName) {
   const normalized = itemName.toLowerCase();
 
@@ -590,8 +637,8 @@ function downloadFilteredItemsCsv() {
 async function loadDataset(source) {
   if (!state.datasets[source]) {
     const [history, latest] = await Promise.all([
-      loadJson(`./data/processed/history-${source}.json`),
-      loadJson(`./data/processed/latest-${source}.json`)
+      loadProcessedJson(`history-${source}.json`),
+      loadProcessedJson(`latest-${source}.json`)
     ]);
     state.datasets[source] = { history, latest };
   }
@@ -624,7 +671,7 @@ async function init() {
     let availableSources = ["active"];
 
     try {
-      const catalog = await loadJson("./data/processed/catalog.json");
+      const catalog = await loadProcessedJson("catalog.json");
       availableSources = Object.keys(catalog.sources || {}).sort();
       if (availableSources.length === 0) {
         availableSources = ["active"];
