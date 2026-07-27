@@ -42,6 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Workflow UTC start: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "starting download"
           if [ -n "${API_KEY:-}" ]; then
             echo "API_KEY detected in workflow environment"
           else
