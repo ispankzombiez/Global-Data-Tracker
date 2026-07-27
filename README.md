@@ -66,6 +66,10 @@ node scripts/buildProcessedDataChunks.mjs YYYY-MM-DD
 - Cron: `10 0 * * *` (00:10 UTC daily)
 - Manual dispatch in Actions tab
 
+Manual dispatch supports an optional `date` input (`YYYY-MM-DD`).
+- Leave blank to run for current UTC date.
+- Provide a date to backfill or re-run a specific day.
+
 The workflow commits changed files in:
 
 - `data/raw/active/`
