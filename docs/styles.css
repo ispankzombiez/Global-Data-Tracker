@@ -221,6 +221,14 @@ canvas {
   min-height: 320px;
 }
 
+#item-chart,
+#market-chart {
+  display: block;
+  height: 320px !important;
+  min-height: 320px;
+  max-height: 320px;
+}
+
 .movers-grid {
   margin-top: 0.8rem;
   display: grid;
@@ -343,5 +351,12 @@ tbody tr:hover {
 
   canvas {
     min-height: 240px;
+  }
+
+  #item-chart,
+  #market-chart {
+    height: 240px !important;
+    min-height: 240px;
+    max-height: 240px;
   }
 }

@@ -445,7 +445,9 @@ function renderMarketChart(history) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
+      aspectRatio: 2.45,
+      animation: false,
       scales: {
         x: {
           ticks: {
@@ -536,7 +538,9 @@ function renderChart(history, latest, itemName) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
+      aspectRatio: 2.45,
+      animation: false,
       scales: {
         x: {
           ticks: {
