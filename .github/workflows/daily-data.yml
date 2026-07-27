@@ -43,11 +43,24 @@ jobs:
           set -euo pipefail
           echo "Workflow UTC start: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "starting download"
+          echo "::notice::starting download"
           if [ -n "${API_KEY:-}" ]; then
             echo "API_KEY detected in workflow environment"
           else
             echo "API_KEY not set; using public endpoint access"
           fi
+
+          (
+            while true; do
+              echo "heartbeat: still running at $(date -u +%H:%M:%S) UTC"
+              sleep 20
+            done
+          ) &
+          HEARTBEAT_PID=$!
+          cleanup() {
+            kill "$HEARTBEAT_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
 
           if [ -n "${{ github.event.inputs.date }}" ]; then
             echo "Running explicit date input: ${{ github.event.inputs.date }}"
