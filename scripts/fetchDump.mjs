@@ -19,7 +19,7 @@ const outputPath = path.join(outputDir, `${date}.jsonl.gz`);
 const maxAttempts = 4;
 const retryableStatuses = new Set([403, 404, 408, 425, 429, 500, 502, 503, 504]);
 const apiKey = process.env.API_KEY?.trim();
-const progressLogEveryBytes = 128 * 1024 * 1024;
+const progressLogEveryBytesWhenUnknown = 16 * 1024 * 1024;
 
 await ensureDir(outputDir);
 
@@ -48,6 +48,7 @@ function buildHeaders() {
 }
 
 let response = null;
+let contentLengthBytes = null;
 for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   console.log(`Downloading ${url} (attempt ${attempt}/${maxAttempts})`);
 
@@ -68,7 +69,11 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   }
 
   if (response.ok && response.body) {
-    const contentLength = response.headers.get("content-length") || "unknown";
+    const contentLengthHeader = response.headers.get("content-length");
+    contentLengthBytes = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : null;
+    const contentLength = contentLengthBytes && Number.isFinite(contentLengthBytes)
+      ? `${(contentLengthBytes / 1024 / 1024).toFixed(1)} MB`
+      : "unknown";
     console.log(`Download response OK (HTTP ${response.status}, content-length: ${contentLength})`);
     break;
   }
@@ -89,7 +94,9 @@ if (!response || !response.ok || !response.body) {
 
 const startedAt = Date.now();
 let downloadedBytes = 0;
-let nextProgressLog = progressLogEveryBytes;
+let nextProgressLog = progressLogEveryBytesWhenUnknown;
+let lastLoggedPercent = -1;
+let lastLoggedAt = 0;
 
 const writer = createWriteStream(outputPath);
 const reader = response.body.getReader();
@@ -111,12 +118,32 @@ try {
       await once(writer, "drain");
     }
 
-    if (downloadedBytes >= nextProgressLog) {
+    if (contentLengthBytes && contentLengthBytes > 0) {
+      const percent = Math.min(
+        100,
+        Math.floor((downloadedBytes / contentLengthBytes) * 100)
+      );
+      const now = Date.now();
+      const shouldLogByPercent = percent >= lastLoggedPercent + 1;
+      const shouldLogByTime = now - lastLoggedAt >= 15000;
+
+      if (shouldLogByPercent || shouldLogByTime || percent === 100) {
+        const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);
+        const mbDownloaded = downloadedBytes / 1024 / 1024;
+        const mbTotal = contentLengthBytes / 1024 / 1024;
+        const mbPerSecond = mbDownloaded / elapsedSeconds;
+        console.log(
+          `Download progress: ${percent}% (${mbDownloaded.toFixed(1)} / ${mbTotal.toFixed(1)} MB) at ${mbPerSecond.toFixed(2)} MB/s`
+        );
+        lastLoggedPercent = percent;
+        lastLoggedAt = now;
+      }
+    } else if (downloadedBytes >= nextProgressLog) {
       const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
       const mbDownloaded = downloadedBytes / 1024 / 1024;
       const mbPerSecond = mbDownloaded / elapsedSeconds;
       console.log(`Download progress: ${mbDownloaded.toFixed(1)} MB (${mbPerSecond.toFixed(2)} MB/s)`);
-      nextProgressLog += progressLogEveryBytes;
+      nextProgressLog += progressLogEveryBytesWhenUnknown;
     }
   }
 
