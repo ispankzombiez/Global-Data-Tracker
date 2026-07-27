@@ -42,6 +42,7 @@ function runPipelineForDate(targetDate) {
 
   runStep(["scripts/aggregateDaily.mjs", "active", targetDate]);
   runStep(["scripts/buildProcessedDataChunks.mjs", targetDate]);
+  runStep(["scripts/syncDocsData.mjs"]);
   return 0;
 }
 

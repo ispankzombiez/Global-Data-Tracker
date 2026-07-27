@@ -16,7 +16,7 @@ This repository archives Sunflower Land community snapshots and publishes a GitH
 3. Raw gzip files are saved by date under `data/raw/active/` so previous files are never overwritten.
 4. Aggregated summaries and time-series outputs are written to `data/processed/`.
 5. A chunked, browser-friendly farm dataset is generated under `data/processed-data/active/{YYYY-MM-DD}/`.
-5. GitHub Pages deploys `docs/` plus processed JSON data as a public dashboard.
+6. Processed outputs are mirrored into `docs/data/` so GitHub Pages can serve them when building from `main/docs`.
 
 ## Repository Structure
 
@@ -24,6 +24,7 @@ This repository archives Sunflower Land community snapshots and publishes a GitH
 - `scripts/aggregateDaily.mjs`: Parse farm records and aggregate item totals.
 - `scripts/runDaily.mjs`: Fetch + aggregate the daily `active` snapshot.
 - `scripts/buildProcessedDataChunks.mjs`: Build date-partitioned farm chunks for browser lookup.
+- `scripts/syncDocsData.mjs`: Sync processed outputs into `docs/data/` for branch-based Pages hosting.
 - `scripts/bootstrapAll.mjs`: Manual complete snapshot bootstrap.
 - `.github/workflows/daily-data.yml`: Scheduled data pull at `00:10 UTC`.
 - `.github/workflows/deploy-pages.yml`: Deploy dashboard to GitHub Pages.
@@ -63,6 +64,12 @@ To build only the browser chunk output for an existing active snapshot:
 node scripts/buildProcessedDataChunks.mjs YYYY-MM-DD
 ```
 
+To mirror processed outputs into `docs/data` for Pages branch builds:
+
+```bash
+node scripts/syncDocsData.mjs
+```
+
 ## GitHub Action Schedule
 
 `daily-data.yml` runs on:
@@ -82,6 +89,7 @@ The workflow commits changed files in:
 - `data/raw/active/`
 - `data/processed/`
 - `data/processed-data/`
+- `docs/data/`
 
 ## GitHub Pages
 
@@ -102,7 +110,8 @@ Daily browser-friendly chunks for source `active` are saved to:
 
 `index.json` includes chunk metadata (farm counts and file list), while each chunk file contains a slice of farms with normalized item totals. Pages can fetch `index.json` first, then load only the needed chunk files.
 
-Enable Pages in repository settings with **Source: GitHub Actions**.
+If Pages source is set to **Deploy from a branch**, use `main` with `/docs` so
+the dashboard and synced data under `docs/data/` are published together.
 
 ## Dashboard Features
 

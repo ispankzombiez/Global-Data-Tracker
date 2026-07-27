@@ -9,6 +9,7 @@
     "aggregate:active": "node scripts/aggregateDaily.mjs active",
     "aggregate:all": "node scripts/aggregateDaily.mjs all",
     "chunks:active": "node scripts/buildProcessedDataChunks.mjs",
+    "sync:docs-data": "node scripts/syncDocsData.mjs",
     "daily": "node scripts/runDaily.mjs",
     "bootstrap:all": "node scripts/bootstrapAll.mjs"
   },
