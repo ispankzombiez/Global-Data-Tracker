@@ -53,6 +53,10 @@ node scripts/runDaily.mjs YYYY-MM-DD
 
 If date is omitted, UTC today is used.
 
+When run without an explicit date, the daily runner automatically falls back to
+the previous two UTC dates if today is temporarily unavailable upstream (for
+example a `403` or `404` during publication lag).
+
 To build only the browser chunk output for an existing active snapshot:
 
 ```bash

@@ -17,6 +17,8 @@ const date = normalizeDate(inputDate);
 const url = `https://community.sunflower-land.com/${date}/${source}.jsonl.gz`;
 const outputDir = path.join(rootDir, "data", "raw", source);
 const outputPath = path.join(outputDir, `${date}.jsonl.gz`);
+const maxAttempts = 4;
+const retryableStatuses = new Set([403, 404, 408, 425, 429, 500, 502, 503, 504]);
 
 await ensureDir(outputDir);
 
@@ -25,11 +27,48 @@ if (existsSync(outputPath) && !force) {
   process.exit(0);
 }
 
-console.log(`Downloading ${url}`);
-const response = await fetch(url);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-if (!response.ok || !response.body) {
-  console.error(`Failed to download ${url}. HTTP ${response.status}`);
+let response = null;
+for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  console.log(`Downloading ${url} (attempt ${attempt}/${maxAttempts})`);
+
+  try {
+    response = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "user-agent": "global-data-tracker/0.1 (+https://github.com/ispankzombiez/Global-Data-Tracker)",
+        "accept": "application/gzip, application/octet-stream, */*"
+      }
+    });
+  } catch (error) {
+    if (attempt >= maxAttempts) {
+      console.error(`Failed to download ${url}. Network error: ${error.message}`);
+      process.exit(2);
+    }
+
+    console.log(`Network error. Retrying in ${attempt * 5}s...`);
+    await sleep(attempt * 5000);
+    continue;
+  }
+
+  if (response.ok && response.body) {
+    break;
+  }
+
+  if (!retryableStatuses.has(response.status) || attempt >= maxAttempts) {
+    console.error(`Failed to download ${url}. HTTP ${response.status}`);
+    process.exit(2);
+  }
+
+  console.log(`HTTP ${response.status}. Retrying in ${attempt * 5}s...`);
+  await sleep(attempt * 5000);
+}
+
+if (!response || !response.ok || !response.body) {
+  console.error(`Failed to download ${url}.`);
   process.exit(2);
 }
 
