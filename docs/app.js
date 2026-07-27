@@ -12,6 +12,7 @@ const deltaLabel = document.querySelector("#delta-label");
 const marketLabel = document.querySelector("#market-label");
 const gainersBody = document.querySelector("#gainers-body");
 const losersBody = document.querySelector("#losers-body");
+const themeToggle = document.querySelector("#theme-toggle");
 
 let itemChart = null;
 let marketChart = null;
@@ -22,8 +23,34 @@ const state = {
   category: "all",
   query: "",
   selectedItem: "",
+  theme: document.documentElement.getAttribute("data-theme") || "dark",
   datasets: {}
 };
+
+function currentThemeColors() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    chartText: style.getPropertyValue("--chart-text").trim() || "#d6e2ec",
+    chartGrid: style.getPropertyValue("--chart-grid").trim() || "rgba(214, 226, 236, 0.18)",
+    accent: style.getPropertyValue("--accent").trim() || "#38b2ac",
+    accent2: style.getPropertyValue("--accent-2").trim() || "#f59e0b"
+  };
+}
+
+function applyTheme(theme) {
+  state.theme = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", state.theme);
+  localStorage.setItem("gdt-theme", state.theme);
+  themeToggle.textContent = state.theme === "dark" ? "Light Mode" : "Dark Mode";
+  themeToggle.setAttribute(
+    "aria-label",
+    state.theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+  );
+
+  if (state.datasets[state.source]) {
+    renderCurrent();
+  }
+}
 
 function formatNumber(value, digits = 0) {
   return new Intl.NumberFormat("en-US", {
@@ -304,6 +331,7 @@ function renderMarketChart(history) {
   const usePerFarm = state.metric === "perFarm";
   const metricLabel = usePerFarm ? "per active farm" : "global total";
   const digits = usePerFarm ? 3 : 0;
+  const colors = currentThemeColors();
 
   marketChart = new Chart(context, {
     type: "bar",
@@ -314,8 +342,8 @@ function renderMarketChart(history) {
           label: `All tracked items (${metricLabel})`,
           data: totals,
           borderWidth: 1,
-          backgroundColor: "rgba(217, 119, 6, 0.55)",
-          borderColor: "#b45309"
+          backgroundColor: `${colors.accent2}99`,
+          borderColor: colors.accent2
         }
       ]
     },
@@ -323,18 +351,30 @@ function renderMarketChart(history) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+        x: {
+          ticks: {
+            color: colors.chartText
+          },
+          grid: {
+            color: colors.chartGrid
+          }
+        },
         y: {
           ticks: {
+            color: colors.chartText,
             callback(value) {
               return formatNumber(value, digits);
             }
+          },
+          grid: {
+            color: colors.chartGrid
           }
         }
       },
       plugins: {
         legend: {
           labels: {
-            color: "#1f2a24"
+            color: colors.chartText
           }
         },
         tooltip: {
@@ -379,6 +419,7 @@ function renderChart(history, latest, itemName) {
   const context = document.querySelector("#item-chart").getContext("2d");
   const labelSuffix = usePerFarm ? " per active farm" : " total amount";
   const digitCount = usePerFarm ? 3 : 0;
+  const colors = currentThemeColors();
 
   itemChart = new Chart(context, {
     type: "line",
@@ -388,8 +429,8 @@ function renderChart(history, latest, itemName) {
         {
           label: `${itemName}${labelSuffix}`,
           data,
-          borderColor: "#0f766e",
-          backgroundColor: "rgba(15, 118, 110, 0.16)",
+          borderColor: colors.accent,
+          backgroundColor: `${colors.accent}33`,
           fill: true,
           pointRadius: 2,
           borderWidth: 2,
@@ -401,18 +442,30 @@ function renderChart(history, latest, itemName) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+        x: {
+          ticks: {
+            color: colors.chartText
+          },
+          grid: {
+            color: colors.chartGrid
+          }
+        },
         y: {
           ticks: {
+            color: colors.chartText,
             callback(value) {
               return formatNumber(value, digitCount);
             }
+          },
+          grid: {
+            color: colors.chartGrid
           }
         }
       },
       plugins: {
         legend: {
           labels: {
-            color: "#1f2a24"
+            color: colors.chartText
           }
         },
         tooltip: {
@@ -553,6 +606,8 @@ function renderCurrent() {
 
 async function init() {
   try {
+    applyTheme(state.theme);
+
     let availableSources = ["active"];
 
     try {
@@ -617,6 +672,10 @@ async function init() {
 
     exportFilteredCsvButton.addEventListener("click", () => {
       downloadFilteredItemsCsv();
+    });
+
+    themeToggle.addEventListener("click", () => {
+      applyTheme(state.theme === "dark" ? "light" : "dark");
     });
   } catch (error) {
     renderError(error);

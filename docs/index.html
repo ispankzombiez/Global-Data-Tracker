@@ -10,6 +10,17 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("gdt-theme");
+          const theme = saved === "light" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
     <script type="module" src="./app.js" defer></script>
@@ -20,6 +31,9 @@
 
     <main class="layout">
       <header class="hero">
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to light mode">
+          Light Mode
+        </button>
         <p class="eyebrow">Sunflower Land Community Data</p>
         <h1>Global Data Tracker</h1>
         <p class="subtitle">
