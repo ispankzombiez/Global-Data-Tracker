@@ -14,6 +14,8 @@ const gainersBody = document.querySelector("#gainers-body");
 const losersBody = document.querySelector("#losers-body");
 const themeToggle = document.querySelector("#theme-toggle");
 const THEME_STORAGE_KEY = "gdt-theme-v2";
+const CHART_HEIGHT_DESKTOP = 320;
+const CHART_HEIGHT_MOBILE = 240;
 
 if (window.location.pathname.endsWith("/docs/") || window.location.pathname.endsWith("/docs/index.html")) {
   const target = window.location.pathname
@@ -44,6 +46,23 @@ function currentThemeColors() {
     accent: style.getPropertyValue("--accent").trim() || "#38b2ac",
     accent2: style.getPropertyValue("--accent-2").trim() || "#f59e0b"
   };
+}
+
+function lockChartCanvasHeight() {
+  const isMobile = window.matchMedia("(max-width: 680px)").matches;
+  const targetHeight = isMobile ? CHART_HEIGHT_MOBILE : CHART_HEIGHT_DESKTOP;
+
+  for (const selector of ["#item-chart", "#market-chart"]) {
+    const canvas = document.querySelector(selector);
+    if (!canvas) {
+      continue;
+    }
+
+    canvas.style.height = `${targetHeight}px`;
+    canvas.style.minHeight = `${targetHeight}px`;
+    canvas.style.maxHeight = `${targetHeight}px`;
+    canvas.height = targetHeight;
+  }
 }
 
 function applyTheme(theme) {
@@ -445,8 +464,7 @@ function renderMarketChart(history) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2.45,
+      maintainAspectRatio: false,
       animation: false,
       scales: {
         x: {
@@ -538,8 +556,7 @@ function renderChart(history, latest, itemName) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2.45,
+      maintainAspectRatio: false,
       animation: false,
       scales: {
         x: {
@@ -685,6 +702,8 @@ async function loadDataset(source) {
 }
 
 function renderCurrent() {
+  lockChartCanvasHeight();
+
   const current = state.datasets[state.source];
   if (!current) {
     return;
@@ -779,6 +798,14 @@ async function init() {
 }
 
 applyTheme(state.theme);
+lockChartCanvasHeight();
+
+window.addEventListener("resize", () => {
+  lockChartCanvasHeight();
+  if (state.datasets[state.source]) {
+    renderCurrent();
+  }
+});
 
 if (themeToggle) {
   themeToggle.addEventListener("click", () => {
