@@ -11,6 +11,7 @@ import {
   utcDateString,
   writeJson
 } from "./common.mjs";
+import { walkForItems } from "./itemExtraction.mjs";
 
 const source = process.argv[2];
 const inputDate = process.argv[3];
@@ -37,94 +38,6 @@ console.log(`Reading raw file: ${rawPath}`);
 const itemTotals = new Map();
 let farmCount = 0;
 
-const likelyBagKeys = new Set([
-  "inventory",
-  "chest",
-  "collectibles",
-  "wardrobe",
-  "kitchen",
-  "beach",
-  "items",
-  "barn",
-  "stock"
-]);
-
-function asNumber(value) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
-function isLikelyItemBag(obj, parentKey) {
-  const entries = Object.entries(obj);
-  if (entries.length === 0) {
-    return false;
-  }
-
-  let numericCount = 0;
-  let nestedCount = 0;
-
-  for (const [, value] of entries) {
-    if (asNumber(value) !== null) {
-      numericCount += 1;
-    } else if (value !== null && typeof value === "object") {
-      nestedCount += 1;
-    }
-  }
-
-  if (nestedCount > 0) {
-    return false;
-  }
-
-  if (likelyBagKeys.has(parentKey)) {
-    return numericCount > 0;
-  }
-
-  return entries.length >= 3 && numericCount === entries.length;
-}
-
-function addItem(name, value) {
-  if (!name) {
-    return;
-  }
-
-  const current = itemTotals.get(name) ?? 0;
-  itemTotals.set(name, current + value);
-}
-
-function walk(node, parentKey = "") {
-  if (node === null || typeof node !== "object") {
-    return;
-  }
-
-  if (Array.isArray(node)) {
-    for (const child of node) {
-      walk(child, parentKey);
-    }
-    return;
-  }
-
-  if (isLikelyItemBag(node, parentKey)) {
-    for (const [itemName, rawValue] of Object.entries(node)) {
-      const amount = asNumber(rawValue);
-      if (amount !== null) {
-        addItem(itemName, amount);
-      }
-    }
-    return;
-  }
-
-  for (const [key, value] of Object.entries(node)) {
-    walk(value, key.toLowerCase());
-  }
-}
 
 const readStream = createReadStream(rawPath);
 const gunzip = zlib.createGunzip();
@@ -147,7 +60,7 @@ for await (const line of lineReader) {
   }
 
   farmCount += 1;
-  walk(farm);
+  walkForItems(farm, itemTotals);
 
   const now = Date.now();
   if (now >= nextTimeProgressLogAt) {

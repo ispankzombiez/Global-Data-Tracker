@@ -96,6 +96,14 @@ function formatNumber(value, digits = 0) {
     return safeValue.toExponential(2).replace("e+", "e");
   }
 
+  // Compact notation improves readability for large in-game totals.
+  if (abs >= 1e6) {
+    return new Intl.NumberFormat("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 2
+    }).format(safeValue);
+  }
+
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits

@@ -5,6 +5,7 @@ import { readdir, unlink } from "node:fs/promises";
 import readline from "node:readline";
 import zlib from "node:zlib";
 import { ensureDir, normalizeDate, rootDir } from "./common.mjs";
+import { walkForItems } from "./itemExtraction.mjs";
 
 const inputDate = process.argv[2];
 const source = "active";
@@ -50,94 +51,6 @@ for (const file of await readdir(chunksDir)) {
 
 if (removedChunkFiles > 0) {
   console.log(`Cleared ${removedChunkFiles} previous chunk files`);
-}
-
-const likelyBagKeys = new Set([
-  "inventory",
-  "chest",
-  "collectibles",
-  "wardrobe",
-  "kitchen",
-  "beach",
-  "items",
-  "barn",
-  "stock"
-]);
-
-function asNumber(value) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
-function isLikelyItemBag(obj, parentKey) {
-  const entries = Object.entries(obj);
-  if (entries.length === 0) {
-    return false;
-  }
-
-  let numericCount = 0;
-  let nestedCount = 0;
-
-  for (const [, value] of entries) {
-    if (asNumber(value) !== null) {
-      numericCount += 1;
-    } else if (value !== null && typeof value === "object") {
-      nestedCount += 1;
-    }
-  }
-
-  if (nestedCount > 0) {
-    return false;
-  }
-
-  if (likelyBagKeys.has(parentKey)) {
-    return numericCount > 0;
-  }
-
-  return entries.length >= 3 && numericCount === entries.length;
-}
-
-function addItem(totals, name, value) {
-  if (!name) {
-    return;
-  }
-  const current = totals.get(name) ?? 0;
-  totals.set(name, current + value);
-}
-
-function walkForItems(node, totals, parentKey = "") {
-  if (node === null || typeof node !== "object") {
-    return;
-  }
-
-  if (Array.isArray(node)) {
-    for (const child of node) {
-      walkForItems(child, totals, parentKey);
-    }
-    return;
-  }
-
-  if (isLikelyItemBag(node, parentKey)) {
-    for (const [itemName, rawValue] of Object.entries(node)) {
-      const amount = asNumber(rawValue);
-      if (amount !== null) {
-        addItem(totals, itemName, amount);
-      }
-    }
-    return;
-  }
-
-  for (const [key, value] of Object.entries(node)) {
-    walkForItems(value, totals, key.toLowerCase());
-  }
 }
 
 function findFarmId(farm, ordinal) {

@@ -138,5 +138,5 @@ the dashboard and synced data under `docs/data/` are published together.
 
 ## Notes
 
-- The item aggregation logic is schema-tolerant and scans likely inventory-like numeric bags recursively.
-- If the upstream JSON schema changes, update `scripts/aggregateDaily.mjs` bag detection heuristics.
+- Aggregation now uses a strict whitelist of item container keys (`inventory`, `stock`, `wardrobe`, `wearables`, `collectibles`, `items`) to avoid counting metadata like timestamps, IDs, and progress counters as item quantities.
+- If the upstream schema moves real item totals to new keys, update `scripts/itemExtraction.mjs`.
