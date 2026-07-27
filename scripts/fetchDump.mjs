@@ -125,7 +125,7 @@ try {
       );
       const now = Date.now();
       const shouldLogByPercent = percent >= lastLoggedPercent + 1;
-      const shouldLogByTime = now - lastLoggedAt >= 15000;
+      const shouldLogByTime = now - lastLoggedAt >= 2000;
 
       if (shouldLogByPercent || shouldLogByTime || percent === 100) {
         const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);

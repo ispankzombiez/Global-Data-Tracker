@@ -28,6 +28,8 @@ await ensureDir(dailyDir);
 
 const startedAt = Date.now();
 const progressEveryFarms = 5000;
+const progressLogEveryMs = 2000;
+let nextTimeProgressLogAt = startedAt + progressLogEveryMs;
 
 console.log(`Aggregating ${source} snapshot for ${date}`);
 console.log(`Reading raw file: ${rawPath}`);
@@ -147,8 +149,16 @@ for await (const line of lineReader) {
   farmCount += 1;
   walk(farm);
 
+  const now = Date.now();
+  if (now >= nextTimeProgressLogAt) {
+    const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);
+    const farmsPerSecond = farmCount / elapsedSeconds;
+    console.log(`Parsed ${farmCount} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
+    nextTimeProgressLogAt = now + progressLogEveryMs;
+  }
+
   if (farmCount % progressEveryFarms === 0) {
-    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+    const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);
     const farmsPerSecond = farmCount / elapsedSeconds;
     console.log(`Parsed ${farmCount} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
   }

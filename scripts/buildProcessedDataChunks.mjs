@@ -16,6 +16,8 @@ const chunkSize = Number.parseInt(chunkSizeArg?.split("=")[1] ?? "500", 10);
 const maxFarms = maxFarmsArg ? Number.parseInt(maxFarmsArg.split("=")[1], 10) : null;
 const progressEveryFarms = 5000;
 const startedAt = Date.now();
+const progressLogEveryMs = 2000;
+let nextTimeProgressLogAt = startedAt + progressLogEveryMs;
 
 if (!Number.isInteger(chunkSize) || chunkSize <= 0) {
   console.error("Invalid --chunk-size value. Use a positive integer.");
@@ -261,8 +263,16 @@ for await (const line of lineReader) {
     await flushChunk();
   }
 
+  const now = Date.now();
+  if (now >= nextTimeProgressLogAt) {
+    const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);
+    const farmsPerSecond = totalFarms / elapsedSeconds;
+    console.log(`Processed ${totalFarms} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
+    nextTimeProgressLogAt = now + progressLogEveryMs;
+  }
+
   if (totalFarms % progressEveryFarms === 0) {
-    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+    const elapsedSeconds = Math.max((now - startedAt) / 1000, 1);
     const farmsPerSecond = totalFarms / elapsedSeconds;
     console.log(`Processed ${totalFarms} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
   }
