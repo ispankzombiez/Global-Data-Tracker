@@ -39,6 +39,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/raw/active data/processed
+          git add data/raw/active data/processed data/processed-data
           git commit -m "data: active snapshot $(date -u +%F)"
           git push

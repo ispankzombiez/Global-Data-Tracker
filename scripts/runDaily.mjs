@@ -13,3 +13,4 @@ function runStep(args) {
 
 runStep(["scripts/fetchDump.mjs", "active", date]);
 runStep(["scripts/aggregateDaily.mjs", "active", date]);
+runStep(["scripts/buildProcessedDataChunks.mjs", date]);

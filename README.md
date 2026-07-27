@@ -15,6 +15,7 @@ This repository archives Sunflower Land community snapshots and publishes a GitH
 2. Every day at `00:10 UTC`, GitHub Actions fetches that day's `active.jsonl.gz`.
 3. Raw gzip files are saved by date under `data/raw/active/` so previous files are never overwritten.
 4. Aggregated summaries and time-series outputs are written to `data/processed/`.
+5. A chunked, browser-friendly farm dataset is generated under `data/processed-data/active/{YYYY-MM-DD}/`.
 5. GitHub Pages deploys `docs/` plus processed JSON data as a public dashboard.
 
 ## Repository Structure
@@ -22,6 +23,7 @@ This repository archives Sunflower Land community snapshots and publishes a GitH
 - `scripts/fetchDump.mjs`: Download and archive raw `.jsonl.gz` dumps.
 - `scripts/aggregateDaily.mjs`: Parse farm records and aggregate item totals.
 - `scripts/runDaily.mjs`: Fetch + aggregate the daily `active` snapshot.
+- `scripts/buildProcessedDataChunks.mjs`: Build date-partitioned farm chunks for browser lookup.
 - `scripts/bootstrapAll.mjs`: Manual complete snapshot bootstrap.
 - `.github/workflows/daily-data.yml`: Scheduled data pull at `00:10 UTC`.
 - `.github/workflows/deploy-pages.yml`: Deploy dashboard to GitHub Pages.
@@ -51,6 +53,12 @@ node scripts/runDaily.mjs YYYY-MM-DD
 
 If date is omitted, UTC today is used.
 
+To build only the browser chunk output for an existing active snapshot:
+
+```bash
+node scripts/buildProcessedDataChunks.mjs YYYY-MM-DD
+```
+
 ## GitHub Action Schedule
 
 `daily-data.yml` runs on:
@@ -62,6 +70,7 @@ The workflow commits changed files in:
 
 - `data/raw/active/`
 - `data/processed/`
+- `data/processed-data/`
 
 ## GitHub Pages
 
@@ -70,6 +79,17 @@ The deploy workflow publishes:
 - `docs/*`
 - `data/processed/*.json`
 - `data/processed/daily/*.json`
+- `data/processed-data/**`
+
+## Processed Data Chunks
+
+Daily browser-friendly chunks for source `active` are saved to:
+
+- `data/processed-data/active/{YYYY-MM-DD}/index.json`
+- `data/processed-data/active/{YYYY-MM-DD}/chunks/chunk-00001.json`
+- `data/processed-data/active/{YYYY-MM-DD}/chunks/chunk-00002.json`
+
+`index.json` includes chunk metadata (farm counts and file list), while each chunk file contains a slice of farms with normalized item totals. Pages can fetch `index.json` first, then load only the needed chunk files.
 
 Enable Pages in repository settings with **Source: GitHub Actions**.
 

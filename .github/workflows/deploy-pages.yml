@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/**"
       - "data/processed/**"
+      - "data/processed-data/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -42,6 +43,11 @@ jobs:
 
           if compgen -G "data/processed/daily/*.json" > /dev/null; then
             cp data/processed/daily/*.json _site/data/processed/daily/
+          fi
+
+          if [ -d "data/processed-data" ]; then
+            mkdir -p _site/data/processed-data
+            cp -R data/processed-data/. _site/data/processed-data/
           fi
 
       - name: Upload artifact
