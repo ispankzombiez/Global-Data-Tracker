@@ -33,6 +33,7 @@ html[data-theme="light"] {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   color: var(--ink);
   background:
     radial-gradient(circle at 15% 20%, rgba(56, 178, 172, 0.18) 0%, transparent 34%),
@@ -143,6 +144,7 @@ h1 {
   padding: 1rem;
   box-shadow: 0 8px 30px rgba(31, 42, 36, 0.08);
   min-width: 0;
+  overflow: hidden;
 }
 
 .panel-header {
