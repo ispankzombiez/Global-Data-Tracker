@@ -68,10 +68,19 @@ function applyTheme(theme) {
 }
 
 function formatNumber(value, digits = 0) {
+  const numeric = Number(value);
+  const safeValue = Number.isFinite(numeric) ? numeric : 0;
+  const abs = Math.abs(safeValue);
+
+  // Extremely large values create very long strings that can destabilize layout.
+  if (abs >= 1e15) {
+    return safeValue.toExponential(2).replace("e+", "e");
+  }
+
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits
-  }).format(Number(value) || 0);
+  }).format(safeValue);
 }
 
 function formatDelta(value) {
