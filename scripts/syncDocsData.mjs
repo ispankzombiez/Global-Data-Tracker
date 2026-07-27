@@ -6,10 +6,8 @@ const dataDir = path.join(rootDir, "data");
 const docsDataDir = path.join(rootDir, "docs", "data");
 
 const sourceProcessedDir = path.join(dataDir, "processed");
-const sourceProcessedDataDir = path.join(dataDir, "processed-data");
 
 const targetProcessedDir = path.join(docsDataDir, "processed");
-const targetProcessedDataDir = path.join(docsDataDir, "processed-data");
 
 async function exists(filePath) {
   try {
@@ -55,5 +53,4 @@ async function copyTree(sourceDir, targetDir, label) {
 
 console.log("Syncing processed data into docs/data for Pages branch deployment...");
 await copyTree(sourceProcessedDir, targetProcessedDir, "processed summaries");
-await copyTree(sourceProcessedDataDir, targetProcessedDataDir, "processed-data chunks");
 console.log("Docs data sync complete.");

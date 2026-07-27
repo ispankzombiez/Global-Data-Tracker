@@ -1,2 +1,7 @@
 node_modules/
 .DS_Store
+
+# Transient heavy data generated during local/dev pipeline runs
+data/raw/active/*.jsonl.gz
+data/processed-data/
+docs/data/processed-data/

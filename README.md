@@ -15,15 +15,14 @@ This repository archives Sunflower Land community snapshots and publishes a GitH
 2. Every day at `00:10 UTC`, GitHub Actions fetches that day's `active.jsonl.gz`.
 3. Raw gzip files are saved by date under `data/raw/active/` so previous files are never overwritten.
 4. Aggregated summaries and time-series outputs are written to `data/processed/`.
-5. A chunked, browser-friendly farm dataset is generated under `data/processed-data/active/{YYYY-MM-DD}/`.
-6. Processed outputs are mirrored into `docs/data/` so GitHub Pages can serve them when building from `main/docs`.
+5. Processed outputs are mirrored into `docs/data/processed/` so GitHub Pages can serve them when building from `main/docs`.
+6. Heavy raw/chunk data is treated as transient in automation and is purged before commit.
 
 ## Repository Structure
 
 - `scripts/fetchDump.mjs`: Download and archive raw `.jsonl.gz` dumps.
 - `scripts/aggregateDaily.mjs`: Parse farm records and aggregate item totals.
 - `scripts/runDaily.mjs`: Fetch + aggregate the daily `active` snapshot.
-- `scripts/buildProcessedDataChunks.mjs`: Build date-partitioned farm chunks for browser lookup.
 - `scripts/syncDocsData.mjs`: Sync processed outputs into `docs/data/` for branch-based Pages hosting.
 - `scripts/bootstrapAll.mjs`: Manual complete snapshot bootstrap.
 - `.github/workflows/daily-data.yml`: Scheduled data pull at `00:10 UTC`.
@@ -100,15 +99,13 @@ The deploy workflow publishes:
 - `data/processed/daily/*.json`
 - `data/processed-data/**`
 
-## Processed Data Chunks
+## Automation Retention Model
 
-Daily browser-friendly chunks for source `active` are saved to:
-
-- `data/processed-data/active/{YYYY-MM-DD}/index.json`
-- `data/processed-data/active/{YYYY-MM-DD}/chunks/chunk-00001.json`
-- `data/processed-data/active/{YYYY-MM-DD}/chunks/chunk-00002.json`
-
-`index.json` includes chunk metadata (farm counts and file list), while each chunk file contains a slice of farms with normalized item totals. Pages can fetch `index.json` first, then load only the needed chunk files.
+- Daily automation commits only compact summary outputs:
+  - `data/processed/**`
+  - `docs/data/processed/**`
+- Raw snapshot files are uploaded as short-lived workflow artifacts (7-day retention) for rollback/debugging, then removed from the workspace before commit.
+- Large farm-level chunk outputs are not committed by default.
 
 If Pages source is set to **Deploy from a branch**, use `main` with `/docs` so
 the dashboard and synced data under `docs/data/` are published together.
