@@ -15,6 +15,14 @@ const losersBody = document.querySelector("#losers-body");
 const themeToggle = document.querySelector("#theme-toggle");
 const THEME_STORAGE_KEY = "gdt-theme-v2";
 
+if (window.location.pathname.endsWith("/docs/") || window.location.pathname.endsWith("/docs/index.html")) {
+  const target = window.location.pathname
+    .replace(/\/docs\/index\.html$/, "/")
+    .replace(/\/docs\/$/, "/");
+  const suffix = `${window.location.search}${window.location.hash}`;
+  window.location.replace(`${target}${suffix}`);
+}
+
 let itemChart = null;
 let marketChart = null;
 

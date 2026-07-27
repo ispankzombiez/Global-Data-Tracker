@@ -1,13 +1,6 @@
 name: Deploy Pages
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "docs/**"
-      - "data/processed/**"
-      - "data/processed-data/**"
-      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:

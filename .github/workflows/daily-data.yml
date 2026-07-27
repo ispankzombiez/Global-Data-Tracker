@@ -3,11 +3,6 @@ name: Daily Active Snapshot
 on:
   schedule:
     - cron: "10 0 * * *"
-  push:
-    branches: ["main"]
-    paths:
-      - ".github/workflows/daily-data.yml"
-      - "scripts/**"
   workflow_dispatch:
     inputs:
       date:
