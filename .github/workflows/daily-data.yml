@@ -62,13 +62,24 @@ jobs:
           }
           trap cleanup EXIT
 
+          mkdir -p .logs
+          PIPELINE_LOG=.logs/daily-pipeline.log
+
           if [ -n "${{ github.event.inputs.date }}" ]; then
             echo "Running explicit date input: ${{ github.event.inputs.date }}"
-            node scripts/runDaily.mjs "${{ github.event.inputs.date }}"
+            stdbuf -oL -eL node scripts/runDaily.mjs "${{ github.event.inputs.date }}" 2>&1 | tee -a "$PIPELINE_LOG"
           else
             echo "Running default UTC date mode with fallback"
-            node scripts/runDaily.mjs
+            stdbuf -oL -eL node scripts/runDaily.mjs 2>&1 | tee -a "$PIPELINE_LOG"
           fi
+
+      - name: Upload pipeline log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-pipeline-log
+          path: .logs/daily-pipeline.log
+          if-no-files-found: ignore
 
       - name: Commit data changes
         run: |
