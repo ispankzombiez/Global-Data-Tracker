@@ -12,8 +12,9 @@
     />
     <script>
       (function () {
+        var THEME_KEY = "gdt-theme-v2";
         try {
-          const saved = localStorage.getItem("gdt-theme");
+          const saved = localStorage.getItem(THEME_KEY);
           const theme = saved === "light" ? "light" : "dark";
           document.documentElement.setAttribute("data-theme", theme);
         } catch {

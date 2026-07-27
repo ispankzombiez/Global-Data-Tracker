@@ -13,6 +13,7 @@ const marketLabel = document.querySelector("#market-label");
 const gainersBody = document.querySelector("#gainers-body");
 const losersBody = document.querySelector("#losers-body");
 const themeToggle = document.querySelector("#theme-toggle");
+const THEME_STORAGE_KEY = "gdt-theme-v2";
 
 let itemChart = null;
 let marketChart = null;
@@ -40,7 +41,11 @@ function currentThemeColors() {
 function applyTheme(theme) {
   state.theme = theme === "light" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", state.theme);
-  localStorage.setItem("gdt-theme", state.theme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, state.theme);
+  } catch {
+    // Ignore localStorage failures in restricted browser contexts.
+  }
   themeToggle.textContent = state.theme === "dark" ? "Light Mode" : "Dark Mode";
   themeToggle.setAttribute(
     "aria-label",

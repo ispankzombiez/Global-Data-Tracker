@@ -1,16 +1,148 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=./docs/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Global Data Tracker</title>
+    <base href="./docs/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <script>
-      window.location.replace("./docs/");
+      (function () {
+        var THEME_KEY = "gdt-theme-v2";
+        try {
+          const saved = localStorage.getItem(THEME_KEY);
+          const theme = saved === "light" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
     </script>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script type="module" src="app.js" defer></script>
   </head>
   <body>
-    <p>Redirecting to dashboard...</p>
-    <p><a href="./docs/">Open dashboard</a></p>
+    <div class="bg-glow bg-glow-a"></div>
+    <div class="bg-glow bg-glow-b"></div>
+
+    <main class="layout">
+      <header class="hero">
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to light mode">
+          Light Mode
+        </button>
+        <p class="eyebrow">Sunflower Land Community Data</p>
+        <h1>Global Data Tracker</h1>
+        <p class="subtitle">
+          Daily archive and trend explorer for active farm snapshots.
+        </p>
+      </header>
+
+      <section class="kpis" id="kpis"></section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Item Trend</h2>
+          <div class="control-row">
+            <label for="source-select">Source</label>
+            <select id="source-select"></select>
+            <label for="metric-select">Metric</label>
+            <select id="metric-select">
+              <option value="raw">Total Amount</option>
+              <option value="perFarm">Per Active Farm</option>
+            </select>
+            <label for="category-select">Category</label>
+            <select id="category-select">
+              <option value="all">All</option>
+              <option value="crop">Crops</option>
+              <option value="resource">Resources</option>
+              <option value="food">Food</option>
+              <option value="wearable">Wearables</option>
+              <option value="currency">Currency</option>
+              <option value="other">Other</option>
+            </select>
+            <label for="item-search">Search</label>
+            <input id="item-search" type="search" placeholder="Find item" />
+            <label for="item-select">Item</label>
+            <select id="item-select"></select>
+            <button id="export-item-csv" type="button">Export Item CSV</button>
+            <button id="export-filtered-csv" type="button">Export Filtered CSV</button>
+          </div>
+        </div>
+        <canvas id="item-chart" aria-label="Item trend chart"></canvas>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Market Movement</h2>
+          <p id="market-label"></p>
+        </div>
+        <canvas id="market-chart" aria-label="Global market movement chart"></canvas>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Day-over-Day Movers</h2>
+          <p id="delta-label"></p>
+        </div>
+        <div class="movers-grid">
+          <article>
+            <h3>Top Gainers</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Delta</th>
+                </tr>
+              </thead>
+              <tbody id="gainers-body"></tbody>
+            </table>
+          </article>
+          <article>
+            <h3>Top Losers</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Delta</th>
+                </tr>
+              </thead>
+              <tbody id="losers-body"></tbody>
+            </table>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Top Items (Latest Snapshot)</h2>
+          <p id="latest-label"></p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Total Amount</th>
+                <th>Per Farm</th>
+                <th>Day Delta</th>
+              </tr>
+            </thead>
+            <tbody id="top-items"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="footer-note">
+        <p>
+          Data source: community.sunflower-land.com daily dumps. This dashboard is generated from archived raw files in this repository.
+        </p>
+      </section>
+    </main>
   </body>
 </html>
