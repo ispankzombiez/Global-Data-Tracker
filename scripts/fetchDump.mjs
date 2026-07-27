@@ -19,6 +19,7 @@ const outputDir = path.join(rootDir, "data", "raw", source);
 const outputPath = path.join(outputDir, `${date}.jsonl.gz`);
 const maxAttempts = 4;
 const retryableStatuses = new Set([403, 404, 408, 425, 429, 500, 502, 503, 504]);
+const apiKey = process.env.API_KEY?.trim();
 
 await ensureDir(outputDir);
 
@@ -31,6 +32,21 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildHeaders() {
+  const headers = {
+    "user-agent": "global-data-tracker/0.1 (+https://github.com/ispankzombiez/Global-Data-Tracker)",
+    "accept": "application/gzip, application/octet-stream, */*"
+  };
+
+  if (apiKey) {
+    // Different upstream setups use either x-api-key or Authorization headers.
+    headers["x-api-key"] = apiKey;
+    headers.authorization = `Bearer ${apiKey}`;
+  }
+
+  return headers;
+}
+
 let response = null;
 for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   console.log(`Downloading ${url} (attempt ${attempt}/${maxAttempts})`);
@@ -38,10 +54,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   try {
     response = await fetch(url, {
       redirect: "follow",
-      headers: {
-        "user-agent": "global-data-tracker/0.1 (+https://github.com/ispankzombiez/Global-Data-Tracker)",
-        "accept": "application/gzip, application/octet-stream, */*"
-      }
+      headers: buildHeaders()
     });
   } catch (error) {
     if (attempt >= maxAttempts) {

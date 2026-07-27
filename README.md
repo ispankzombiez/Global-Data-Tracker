@@ -74,6 +74,9 @@ Manual dispatch supports an optional `date` input (`YYYY-MM-DD`).
 - Leave blank to run for current UTC date.
 - Provide a date to backfill or re-run a specific day.
 
+If upstream dump access requires authentication, set repository secret `API_KEY`.
+The daily workflow forwards it to the downloader request headers.
+
 The workflow commits changed files in:
 
 - `data/raw/active/`

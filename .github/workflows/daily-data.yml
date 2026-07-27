@@ -32,6 +32,8 @@ jobs:
           node-version: "20"
 
       - name: Pull active snapshot and aggregate
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.date }}" ]; then
             node scripts/runDaily.mjs "${{ github.event.inputs.date }}"
