@@ -148,7 +148,8 @@ async function loadProcessedJson(fileName) {
     }
   }
 
-  throw new Error(`No processed datasets available. Tried: ${attempts.join(", ")}`);
+  console.error("Processed data path resolution failed", { fileName, attempts });
+  throw new Error("No processed datasets available. Run data pipeline first.");
 }
 
 function categoryForItem(itemName) {
