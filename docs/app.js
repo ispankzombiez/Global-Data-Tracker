@@ -106,11 +106,35 @@ function csvEscape(value) {
 }
 
 async function loadJson(url) {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} ${url}`);
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(url, {
+        cache: "default",
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status} ${url}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        throw error;
+      }
+      // Small backoff helps during brief Pages propagation or network hiccups.
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
-  return response.json();
+
+  throw new Error(`Request failed: ${url}`);
 }
 
 let processedDataBase = null;
