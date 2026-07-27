@@ -1,0 +1,241 @@
+import path from "node:path";
+import { createReadStream } from "node:fs";
+import { readdir } from "node:fs/promises";
+import readline from "node:readline";
+import zlib from "node:zlib";
+import {
+  ensureDir,
+  normalizeDate,
+  readJson,
+  rootDir,
+  utcDateString,
+  writeJson
+} from "./common.mjs";
+
+const source = process.argv[2];
+const inputDate = process.argv[3];
+
+if (!["active", "all"].includes(source)) {
+  console.error("Usage: node scripts/aggregateDaily.mjs <active|all> [YYYY-MM-DD]");
+  process.exit(1);
+}
+
+const date = normalizeDate(inputDate);
+const rawPath = path.join(rootDir, "data", "raw", source, `${date}.jsonl.gz`);
+const processedDir = path.join(rootDir, "data", "processed");
+const dailyDir = path.join(processedDir, "daily");
+await ensureDir(dailyDir);
+
+const itemTotals = new Map();
+let farmCount = 0;
+
+const likelyBagKeys = new Set([
+  "inventory",
+  "chest",
+  "collectibles",
+  "wardrobe",
+  "kitchen",
+  "beach",
+  "items",
+  "barn",
+  "stock"
+]);
+
+function asNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function isLikelyItemBag(obj, parentKey) {
+  const entries = Object.entries(obj);
+  if (entries.length === 0) {
+    return false;
+  }
+
+  let numericCount = 0;
+  let nestedCount = 0;
+
+  for (const [, value] of entries) {
+    if (asNumber(value) !== null) {
+      numericCount += 1;
+    } else if (value !== null && typeof value === "object") {
+      nestedCount += 1;
+    }
+  }
+
+  if (nestedCount > 0) {
+    return false;
+  }
+
+  if (likelyBagKeys.has(parentKey)) {
+    return numericCount > 0;
+  }
+
+  return entries.length >= 3 && numericCount === entries.length;
+}
+
+function addItem(name, value) {
+  if (!name) {
+    return;
+  }
+
+  const current = itemTotals.get(name) ?? 0;
+  itemTotals.set(name, current + value);
+}
+
+function walk(node, parentKey = "") {
+  if (node === null || typeof node !== "object") {
+    return;
+  }
+
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      walk(child, parentKey);
+    }
+    return;
+  }
+
+  if (isLikelyItemBag(node, parentKey)) {
+    for (const [itemName, rawValue] of Object.entries(node)) {
+      const amount = asNumber(rawValue);
+      if (amount !== null) {
+        addItem(itemName, amount);
+      }
+    }
+    return;
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    walk(value, key.toLowerCase());
+  }
+}
+
+const readStream = createReadStream(rawPath);
+const gunzip = zlib.createGunzip();
+const lineReader = readline.createInterface({
+  input: readStream.pipe(gunzip),
+  crlfDelay: Infinity
+});
+
+for await (const line of lineReader) {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    continue;
+  }
+
+  let farm;
+  try {
+    farm = JSON.parse(trimmed);
+  } catch {
+    continue;
+  }
+
+  farmCount += 1;
+  walk(farm);
+}
+
+const items = Object.fromEntries(
+  [...itemTotals.entries()].sort((a, b) => b[1] - a[1])
+);
+
+const totalItemUnits = Object.values(items).reduce((sum, value) => sum + value, 0);
+
+const summary = {
+  date,
+  source,
+  farmCount,
+  itemTypes: Object.keys(items).length,
+  totalItemUnits,
+  items,
+  generatedAt: new Date().toISOString()
+};
+
+const dailyPath = path.join(dailyDir, `${date}-${source}.json`);
+await writeJson(dailyPath, summary);
+console.log(`Saved daily summary: ${dailyPath}`);
+
+async function rebuildHistoryFor(selectedSource) {
+  const files = await readdir(dailyDir);
+  const sourceFiles = files
+    .filter((file) => file.endsWith(`-${selectedSource}.json`))
+    .sort();
+
+  const dailySummaries = [];
+  for (const file of sourceFiles) {
+    const fullPath = path.join(dailyDir, file);
+    const payload = await readJson(fullPath);
+    dailySummaries.push(payload);
+  }
+
+  dailySummaries.sort((a, b) => a.date.localeCompare(b.date));
+
+  const dates = dailySummaries.map((entry) => entry.date);
+  const farmCountByDate = {};
+  const seriesByItem = {};
+
+  for (const day of dailySummaries) {
+    farmCountByDate[day.date] = day.farmCount;
+    for (const [itemName, count] of Object.entries(day.items)) {
+      if (!seriesByItem[itemName]) {
+        seriesByItem[itemName] = {};
+      }
+      seriesByItem[itemName][day.date] = count;
+    }
+  }
+
+  const latest = dailySummaries.at(-1) ?? null;
+
+  const history = {
+    source: selectedSource,
+    generatedAt: new Date().toISOString(),
+    dates,
+    farmCountByDate,
+    seriesByItem,
+    itemTypes: Object.keys(seriesByItem).length,
+    latestDate: latest?.date ?? null,
+    latestFarmCount: latest?.farmCount ?? 0,
+    latestTotalItemUnits: latest?.totalItemUnits ?? 0
+  };
+
+  await writeJson(
+    path.join(processedDir, `history-${selectedSource}.json`),
+    history
+  );
+
+  if (latest) {
+    await writeJson(path.join(processedDir, `latest-${selectedSource}.json`), latest);
+  }
+
+  const catalogPath = path.join(processedDir, "catalog.json");
+  let catalog = {
+    updatedAt: utcDateString(),
+    sources: {}
+  };
+
+  try {
+    catalog = await readJson(catalogPath);
+  } catch {
+    // Use default catalog when file does not yet exist.
+  }
+
+  catalog.updatedAt = new Date().toISOString();
+  catalog.sources[selectedSource] = {
+    latestDate: latest?.date ?? null,
+    snapshotCount: dailySummaries.length,
+    historyFile: `history-${selectedSource}.json`,
+    latestFile: `latest-${selectedSource}.json`
+  };
+
+  await writeJson(catalogPath, catalog);
+}
+
+await rebuildHistoryFor(source);
+console.log(`Rebuilt history for '${source}'`);

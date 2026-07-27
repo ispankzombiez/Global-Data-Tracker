@@ -1,0 +1,17 @@
+{
+  "name": "global-data-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch:active": "node scripts/fetchDump.mjs active",
+    "fetch:all": "node scripts/fetchDump.mjs all",
+    "aggregate:active": "node scripts/aggregateDaily.mjs active",
+    "aggregate:all": "node scripts/aggregateDaily.mjs all",
+    "daily": "node scripts/runDaily.mjs",
+    "bootstrap:all": "node scripts/bootstrapAll.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

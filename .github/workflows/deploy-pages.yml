@@ -1,0 +1,54 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/**"
+      - "data/processed/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build publish directory
+        run: |
+          mkdir -p _site
+          cp -R docs/. _site/
+
+          mkdir -p _site/data/processed/daily
+
+          if compgen -G "data/processed/*.json" > /dev/null; then
+            cp data/processed/*.json _site/data/processed/
+          fi
+
+          if compgen -G "data/processed/daily/*.json" > /dev/null; then
+            cp data/processed/daily/*.json _site/data/processed/daily/
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

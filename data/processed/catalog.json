@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2026-07-27T02:09:00.715Z",
+  "sources": {
+    "active": {
+      "latestDate": "2026-07-26",
+      "snapshotCount": 1,
+      "historyFile": "history-active.json",
+      "latestFile": "latest-active.json"
+    }
+  }
+}
