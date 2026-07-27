@@ -1,7 +1,6 @@
 import path from "node:path";
 import { createWriteStream, existsSync } from "node:fs";
-import { pipeline } from "node:stream/promises";
-import { Readable } from "node:stream";
+import { once } from "node:events";
 import { ensureDir, normalizeDate, rootDir } from "./common.mjs";
 
 const source = process.argv[2];
@@ -20,6 +19,7 @@ const outputPath = path.join(outputDir, `${date}.jsonl.gz`);
 const maxAttempts = 4;
 const retryableStatuses = new Set([403, 404, 408, 425, 429, 500, 502, 503, 504]);
 const apiKey = process.env.API_KEY?.trim();
+const progressLogEveryBytes = 128 * 1024 * 1024;
 
 await ensureDir(outputDir);
 
@@ -68,6 +68,8 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   }
 
   if (response.ok && response.body) {
+    const contentLength = response.headers.get("content-length") || "unknown";
+    console.log(`Download response OK (HTTP ${response.status}, content-length: ${contentLength})`);
     break;
   }
 
@@ -85,5 +87,48 @@ if (!response || !response.ok || !response.body) {
   process.exit(2);
 }
 
-await pipeline(Readable.fromWeb(response.body), createWriteStream(outputPath));
+const startedAt = Date.now();
+let downloadedBytes = 0;
+let nextProgressLog = progressLogEveryBytes;
+
+const writer = createWriteStream(outputPath);
+const reader = response.body.getReader();
+
+try {
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    if (!value || value.byteLength === 0) {
+      continue;
+    }
+
+    downloadedBytes += value.byteLength;
+
+    if (!writer.write(Buffer.from(value))) {
+      await once(writer, "drain");
+    }
+
+    if (downloadedBytes >= nextProgressLog) {
+      const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+      const mbDownloaded = downloadedBytes / 1024 / 1024;
+      const mbPerSecond = mbDownloaded / elapsedSeconds;
+      console.log(`Download progress: ${mbDownloaded.toFixed(1)} MB (${mbPerSecond.toFixed(2)} MB/s)`);
+      nextProgressLog += progressLogEveryBytes;
+    }
+  }
+
+  writer.end();
+  await once(writer, "finish");
+} catch (error) {
+  writer.destroy();
+  console.error(`Failed while writing ${outputPath}: ${error.message}`);
+  process.exit(2);
+}
+
+const totalSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+const totalMb = downloadedBytes / 1024 / 1024;
 console.log(`Saved ${outputPath}`);
+console.log(`Download complete: ${totalMb.toFixed(1)} MB in ${totalSeconds.toFixed(1)}s`);

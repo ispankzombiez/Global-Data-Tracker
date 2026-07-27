@@ -26,6 +26,12 @@ const processedDir = path.join(rootDir, "data", "processed");
 const dailyDir = path.join(processedDir, "daily");
 await ensureDir(dailyDir);
 
+const startedAt = Date.now();
+const progressEveryFarms = 5000;
+
+console.log(`Aggregating ${source} snapshot for ${date}`);
+console.log(`Reading raw file: ${rawPath}`);
+
 const itemTotals = new Map();
 let farmCount = 0;
 
@@ -140,7 +146,15 @@ for await (const line of lineReader) {
 
   farmCount += 1;
   walk(farm);
+
+  if (farmCount % progressEveryFarms === 0) {
+    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+    const farmsPerSecond = farmCount / elapsedSeconds;
+    console.log(`Parsed ${farmCount} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
+  }
 }
+
+console.log(`Finished parsing farms. Total valid farm records: ${farmCount}`);
 
 const items = Object.fromEntries(
   [...itemTotals.entries()].sort((a, b) => b[1] - a[1])
@@ -163,10 +177,13 @@ await writeJson(dailyPath, summary);
 console.log(`Saved daily summary: ${dailyPath}`);
 
 async function rebuildHistoryFor(selectedSource) {
+  console.log(`Rebuilding history for source '${selectedSource}'...`);
   const files = await readdir(dailyDir);
   const sourceFiles = files
     .filter((file) => file.endsWith(`-${selectedSource}.json`))
     .sort();
+
+  console.log(`Found ${sourceFiles.length} daily snapshots for '${selectedSource}'`);
 
   const dailySummaries = [];
   for (const file of sourceFiles) {
@@ -239,3 +256,5 @@ async function rebuildHistoryFor(selectedSource) {
 
 await rebuildHistoryFor(source);
 console.log(`Rebuilt history for '${source}'`);
+const totalSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+console.log(`Aggregation stage complete in ${totalSeconds.toFixed(1)}s`);

@@ -14,6 +14,8 @@ const chunkSizeArg = process.argv.find((arg) => arg.startsWith("--chunk-size="))
 const maxFarmsArg = process.argv.find((arg) => arg.startsWith("--max-farms="));
 const chunkSize = Number.parseInt(chunkSizeArg?.split("=")[1] ?? "500", 10);
 const maxFarms = maxFarmsArg ? Number.parseInt(maxFarmsArg.split("=")[1], 10) : null;
+const progressEveryFarms = 5000;
+const startedAt = Date.now();
 
 if (!Number.isInteger(chunkSize) || chunkSize <= 0) {
   console.error("Invalid --chunk-size value. Use a positive integer.");
@@ -29,12 +31,23 @@ const rawPath = path.join(rootDir, "data", "raw", source, `${date}.jsonl.gz`);
 const baseOutputDir = path.join(rootDir, "data", "processed-data", source, date);
 const chunksDir = path.join(baseOutputDir, "chunks");
 
+console.log(`Building chunked processed data for ${source} on ${date}`);
+console.log(`Chunk size: ${chunkSize}${maxFarms ? ` | Max farms: ${maxFarms}` : ""}`);
+console.log(`Raw input: ${rawPath}`);
+console.log(`Output directory: ${baseOutputDir}`);
+
 await ensureDir(chunksDir);
 
+let removedChunkFiles = 0;
 for (const file of await readdir(chunksDir)) {
   if (file.endsWith(".json")) {
     await unlink(path.join(chunksDir, file));
+    removedChunkFiles += 1;
   }
+}
+
+if (removedChunkFiles > 0) {
+  console.log(`Cleared ${removedChunkFiles} previous chunk files`);
 }
 
 const likelyBagKeys = new Set([
@@ -201,6 +214,10 @@ async function flushChunk() {
     lastFarmId
   });
 
+  if (chunkIndex % 10 === 0) {
+    console.log(`Wrote chunk ${chunkIndex} (${totalFarms} farms processed so far)`);
+  }
+
   chunkRows = [];
 }
 
@@ -243,6 +260,12 @@ for await (const line of lineReader) {
   if (chunkRows.length >= chunkSize) {
     await flushChunk();
   }
+
+  if (totalFarms % progressEveryFarms === 0) {
+    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+    const farmsPerSecond = totalFarms / elapsedSeconds;
+    console.log(`Processed ${totalFarms} farms (${farmsPerSecond.toFixed(1)} farms/s)`);
+  }
 }
 
 await flushChunk();
@@ -260,3 +283,5 @@ const indexPayload = {
 await writeJson(path.join(baseOutputDir, "index.json"), indexPayload);
 console.log(`Saved chunked processed data: ${baseOutputDir}`);
 console.log(`Farm records: ${totalFarms} | Chunk files: ${chunkManifest.length}`);
+const totalSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+console.log(`Chunk build stage complete in ${totalSeconds.toFixed(1)}s`);
