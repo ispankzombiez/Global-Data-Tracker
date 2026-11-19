@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-11-18T00:39:40.243Z",
+  "updatedAt": "2026-11-19T00:39:29.374Z",
   "sources": {
     "active": {
-      "latestDate": "2026-11-17",
-      "snapshotCount": 113,
+      "latestDate": "2026-11-18",
+      "snapshotCount": 114,
       "historyFile": "history-active.json",
       "latestFile": "latest-active.json"
     }
